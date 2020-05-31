@@ -1,0 +1,5 @@
+IO: reads input from user and prints to output
+GREP_LINES_COUNTERS: defines LinesCounters Structure and initializes it
+GREP_MATCHING_LINE: checks whether there is a match of pattern inside line
+GREP_PARSER: parses arguments from user into defined structure 
+MY_GREP: initializes variables and structures - reads lines from file reports on them 

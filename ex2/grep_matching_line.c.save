@@ -1,0 +1,147 @@
+#include "grep_matching_line.h"
+#include "grepArguments_parser.h"
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void lowercase_string(char *string)
+{
+  int i = 0;
+  for (; string[i] != '\0'; i++) {
+    string[i] = tolower(string[i]);
+  }
+}
+
+void lowercase_parameters(char *copied_line,Character *Pattern_array)
+{
+	Character *place_in_Pattern_array = Pattern_array;
+	bool is_end_of_Pattern_array = false;
+	while (!is_end_of_Pattern_array) {
+		if (place_in_Pattern_array->type == REGULAR) {
+			*place_in_Pattern_array->info.REGULAR_Data = tolower(*place_in_Pattern_array->info.REGULAR_Data);
+			if (strcmp(place_in_Pattern_array->info.REGULAR_Data,"\0")) {
+				is_end_of_Pattern_array = true;				
+			}
+		}
+	}
+	lowercase_string(copied_line);
+}
+
+void init_InputFileLinesCounters(InputFileLinesCounters *InputFileLinesCounters)
+{
+  InputFileLinesCounters->num_of_lines_in_file = 0;
+  InputFileLinesCounters->num_of_matched_lines_in_file = 0;
+  InputFileLinesCounters->offset_from_start_of_InputFile = 0;
+  InputFileLinesCounters->num_of_lines_to_print_after_match = 0;
+}
+
+bool is_check_line_in_tight_match(const char *new_line, grepArguments *grepArguments)
+{
+  return (grepArguments->tighted_match && (strlen(new_line) > 1));
+}
+
+bool is_match_at_place(char *line, Character *Pattern_array) {
+	Character *character = Pattern_array;
+	enum Character_Type character_type = character->type;
+	union Character_info *character_info = &character->info;
+	bool is_match = false;
+	if (character_type == REGULAR) {
+		if (!strcmp(character_info->REGULAR_Data,"\0")) {
+printf("ping\n");
+		is_match = true;
+		}
+		if (!strncmp(line,character_info->REGULAR_Data,1)) {
+printf("pong\n");y
+acter++;
+			is_match = is_match_at_place(&line[1],character);
+		}
+	}	
+printf("w\n");	
+	return is_match;
+}
+
+bool is_match_in_line(const char *new_line, grepArguments *grepArguments)
+{
+  bool is_match = false;
+  char *copied_line = (char *)malloc(sizeof(char) * strlen(new_line) + 1);
+  int place_at_line = 0;
+  copied_line = strcpy(copied_line, new_line);
+  if (grepArguments->ignore_case_sensitive) {
+    lowercase_parameters(copied_line,grepArguments->PatternToSearch);
+  }
+  if (is_check_line_in_tight_match(copied_line, grepArguments)) {
+    is_match = is_match_at_place(copied_line, grepArguments->PatternToSearch);
+  } else {
+	  while (is_match ==false && strcmp(&copied_line[place_at_line],"\n") != 0) {
+		  is_match = is_match_at_place(&copied_line[place_at_line],grepArguments->PatternToSearch);
+		  place_at_line++;
+printf("%d\n", is_match);
+	  }
+  }
+  if (grepArguments->invers_grep) {
+    is_match = is_match ? false : true;
+  }
+printf("%d\n", is_match);
+  free(copied_line);
+printf("%d\n", is_match);
+  return is_match;
+}
+
+void print_line(char *new_line, grepArguments *grepArguments, InputFileLinesCounters *InputFileLinesCounters,
+                bool is_match_in_line)
+{
+  if (grepArguments->print_line_num) {
+    if (is_match_in_line) {
+      printf("%d:", InputFileLinesCounters->num_of_lines_in_file);
+    } else {
+      printf("%d-", InputFileLinesCounters->num_of_lines_in_file);
+    }
+  }
+  if (grepArguments->print_line_offset) {
+    if (is_match_in_line) {
+      printf("%d:", InputFileLinesCounters->offset_from_start_of_InputFile);
+    } else {
+      printf("%d-", InputFileLinesCounters->offset_from_start_of_InputFile);
+    }
+  }
+  printf("%s", new_line);
+}
+
+void update_num_of_lines_to_print_after_match(grepArguments *grepArguments,
+                                              InputFileLinesCounters *InputFileLinesCounters)
+{
+  if (grepArguments->print_NUM_of_lines_after_match) {
+    InputFileLinesCounters->num_of_lines_to_print_after_match = grepArguments->NUM_of_lines;
+  }
+}
+
+bool is_print_line_without_match(grepArguments *grepArguments, InputFileLinesCounters *InputFileLinesCounters)
+{
+  return (grepArguments->print_NUM_of_lines_after_match &&
+          InputFileLinesCounters->num_of_lines_to_print_after_match > 0);
+}
+
+void report_line_match(char *new_line, grepArguments *grepArguments, InputFileLinesCounters *InputFileLinesCounters,
+                       int line_size)
+{
+  if (grepArguments->print_line_num) {
+    InputFileLinesCounters->num_of_lines_in_file++;
+  }
+printf("hi\n");
+  if (is_match_in_line(new_line, grepArguments)) {
+    if (grepArguments->report_num_of_matched_lines) {
+      InputFileLinesCounters->num_of_matched_lines_in_file++;
+    } else {
+      print_line(new_line, grepArguments, InputFileLinesCounters, true);  
+update_num_of_lines_to_print_after_match(grepArguments, InputFileLinesCounters);
+    }
+  } else if (is_print_line_without_match(grepArguments, InputFileLinesCounters)) {
+    print_line(new_line, grepArguments, InputFileLinesCounters, false);
+    InputFileLinesCounters->num_of_lines_to_print_after_match--;
+  }
+  if (grepArguments->print_line_offset) {
+    InputFileLinesCounters->offset_from_start_of_InputFile += line_size;
+  }
+printf("fg\n");
+}

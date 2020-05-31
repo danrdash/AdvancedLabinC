@@ -1,0 +1,52 @@
+#include "IO.h"
+#include "grepArguments_parser.h"
+#include "grep_matching_line.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+void free_line(char *line)
+{
+  if (line != NULL) {
+    free(line);
+  }
+}
+
+void  free_pattern(Character *Pattern_array)
+{
+  Character *prev_character;
+  while (Pattern_array->type != END_OF_ARRAY) {
+    prev_character = Pattern_array;
+    Pattern_array++;
+    free(prev_character);
+  }
+  free(Pattern_array);
+}
+
+int main(int argc, char *argv[])
+{
+  FILE *InputFile = NULL;
+  char *new_line = NULL;
+  int line_size = 0;
+  grepArguments grepArguments;
+  InputFileLinesCounters InputFileLinesCounters;
+  insert_arguments_to_grepArguments(&grepArguments, argc, argv);
+  init_InputFileLinesCounters(&InputFileLinesCounters);
+  if (grepArguments.InputFile_path) {
+    InputFile = fopen(grepArguments.InputFile_path, "r");
+  }
+  while (line_size != -1) {
+    line_size = read_line(InputFile, &new_line);
+    if (line_size > -1) {
+      report_line_match(new_line, &grepArguments, &InputFileLinesCounters, line_size);
+    }
+    free_line(new_line);
+  }
+  if (grepArguments.report_num_of_matched_lines) {
+    printf("%d\n", InputFileLinesCounters.num_of_matched_lines_in_file);
+  }
+  free_pattern(grepArguments.PatternToSearch);
+  if (InputFile != NULL) {
+    fclose(InputFile);
+  }
+  return 0;
+}
