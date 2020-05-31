@@ -1,0 +1,45 @@
+#!/usr/bin/python2.7 -tt
+
+
+from socket import *
+import sys
+BUFFER_SIZE = 1024
+ERROR_404 = 'HTTP/1.1 404 Not Found\r\nContent-type: text/html\r\nContent-length:' \
+                 ' 113\r\n\r\n<html><head><title>Not Found</title></head><body>\r\nSorry, the ' \
+                 'object you requested was not found.\r\n</body></html>\r\n\r\n'
+
+
+def receive_request(LB_socket):
+    end_of_request = False
+    request = ''
+    while not end_of_request:
+        request += LB_socket.recv(BUFFER_SIZE)
+        end_of_request = (request.count('\r\n\r\n') == 1) 
+    return request
+
+
+def is_valid_request(request):
+    return request.count('GET /counter') == 1
+
+
+def get_response(valid_request_num, is_valid_request):
+    if is_valid_request:
+        answer = 'HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nContent-Length: '
+        answer += '{}\r\n\r\n{}\r\n\r\n'.format(len(str(valid_request_num)), valid_request_num)
+    else:
+        answer = ERROR_404
+    return answer
+
+
+server_port = int(sys.argv[1])
+s = socket()
+s.connect(('localhost', server_port))
+valid_request_num = 0
+while True:
+    full_request = receive_request(s)
+    if is_valid_request(full_request):
+        valid_request_num += 1
+    response = get_response(valid_request_num, is_valid_request(full_request))
+    s.send(response)
+
+
